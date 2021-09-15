@@ -68,7 +68,7 @@ import urllib.parse
 # External dependency, install with:
 #   sudo apt-get install python-beautifulsoup
 #   pip install beautifulsoup
-from BeautifulSoup import BeautifulSoup, NavigableString, Comment, UnicodeDammit
+from bs4 import BeautifulSoup, NavigableString, Comment, UnicodeDammit
 
 # External dependency, install with:
 #  pip install coloredlogs
@@ -149,6 +149,7 @@ def get_input(filename, url, args, markdown_extensions):
         text = sys.stdin.read()
     else:
         source = args[0] if args else url
+        source = "file://"
         logger.info("Reading input from %s ..", source)
         handle = urllib.request.urlopen(source)
         text = handle.read()
