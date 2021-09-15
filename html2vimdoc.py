@@ -195,7 +195,7 @@ def html2vimdoc(html, title='', filename='', url='', content_selector='#content'
     find_references(simple_tree, url)
     # Add an "Introduction" heading to separate the table of contents from the
     # start of the document text.
-    simple_tree.insert(0, Heading(level=1, contents=[Text(text="Introduction")]))
+    # simple_tree.insert(0, Heading(level=1, contents=[Text(text="Introduction")]))
     logger.info("Tagging document headings ..")
     tagged_headings = tag_headings(simple_tree, filename)
     logger.info("Marking internal references (pass 1, before TOC) ..")
