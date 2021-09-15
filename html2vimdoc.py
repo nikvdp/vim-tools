@@ -62,8 +62,8 @@ import re
 import sys
 import textwrap
 import types
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 
 # External dependency, install with:
 #   sudo apt-get install python-beautifulsoup
@@ -101,7 +101,7 @@ def main():
     if preview:
         os.popen("gvim -c 'set nomod' -", 'w').write(output)
     else:
-        print output
+        print(output)
 
 def parse_args(argv):
     """
@@ -115,9 +115,9 @@ def parse_args(argv):
     try:
         options, arguments = getopt.getopt(argv, 'f:t:u:x:pvh', ['file=',
             'title=', 'url=', 'ext=', 'preview', 'verbose', 'help'])
-    except getopt.GetoptError, err:
-        print str(err)
-        print __doc__.strip()
+    except getopt.GetoptError as err:
+        print(str(err))
+        print(__doc__.strip())
         sys.exit(1)
     for option, value in options:
         if option in ('-f', '--file'):
@@ -133,7 +133,7 @@ def parse_args(argv):
         elif option in ('-v', '--verbose'):
             logger.setLevel(logging.DEBUG)
         elif option in ('-h', '--help'):
-            print __doc__.strip()
+            print(__doc__.strip())
             sys.exit(0)
         else:
             assert False, "Unknown option"
@@ -150,7 +150,7 @@ def get_input(filename, url, args, markdown_extensions):
     else:
         source = args[0] if args else url
         logger.info("Reading input from %s ..", source)
-        handle = urllib.urlopen(source)
+        handle = urllib.request.urlopen(source)
         text = handle.read()
         handle.close()
         if '://' in source and not url:
@@ -175,7 +175,7 @@ def markdown_to_html(text, markdown_extensions):
     # The Python Markdown module only accepts Unicode and ASCII strings, but we
     # don't know what the encoding of the Markdown text is. BeautifulSoup comes
     # to the rescue with the aptly named UnicodeDammit class :-).
-    return markdown(UnicodeDammit(text).unicode, extensions=markdown_extensions)
+    return markdown(UnicodeDammit(text).str, extensions=markdown_extensions)
 
 def html2vimdoc(html, title='', filename='', url='', content_selector='#content', selectors_to_ignore=[], modeline='vim: ft=help'):
     """
@@ -208,11 +208,11 @@ def html2vimdoc(html, title='', filename='', url='', content_selector='#content'
     logger.info("Rendering output ..")
     vimdoc = simple_tree.render(indent=0)
     output = list(flatten(vimdoc))
-    logger.debug("Output strings before deduplication: %s", list(unicode(v) for v in output))
+    logger.debug("Output strings before deduplication: %s", list(str(v) for v in output))
     deduplicate_delimiters(output)
-    logger.debug("Output strings after deduplication: %s", list(unicode(v) for v in output))
+    logger.debug("Output strings after deduplication: %s", list(str(v) for v in output))
     # Render the final text.
-    vimdoc = u"".join(unicode(v) for v in output)
+    vimdoc = "".join(str(v) for v in output)
     # Add the first line with the file tag and/or document title?
     if title or filename:
         firstline = []
@@ -444,7 +444,7 @@ def find_references(root, url):
             continue
         # Try to convert relative URLs into absolute URLs.
         if url and not re.match(r'^\w+:', target):
-            target = urlparse.urljoin(url, target)
+            target = urllib.parse.urljoin(url, target)
         # Now try to convert absolute URLs into relative URLs... This does
         # actually make sense, but it sure sounds stupid :-p. All it really
         # does is normalize URLs to a common format.
@@ -505,7 +505,7 @@ def copy(node):
     Copy a subtree, breaking references to the old position in the tree.
     """
     if isinstance(node, list):
-        return map(copy, node)
+        return list(map(copy, node))
     elif isinstance(node, Node):
         attributes = {}
         for name in dir(node):
@@ -675,7 +675,7 @@ class SequenceNode(Node):
         """
         return cls(contents=simplify_children(html_node))
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         Make it possible to determine whether a subtree contains
         only whitespace.
@@ -818,7 +818,7 @@ class PreformattedText(BlockLevelNode):
     def __repr__(self):
         return "PreformattedText(text=%r)" % self.text
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.text and not self.text.isspace()
 
     def render(self, **kw):
@@ -850,7 +850,7 @@ class List(BlockLevelNode, SequenceNode):
                 text = node.render(number=len(items) + 1, **kw)
                 items.append(text)
                 for x in text:
-                    if isinstance(x, basestring):
+                    if isinstance(x, str):
                         num_lines += x.count('\n')
                 num_lines += 1
         logger.debug("num_lines=%i, #items=%i, ratio=%.2f", num_lines, len(items), num_lines / float(len(items)))
@@ -893,8 +893,8 @@ class ListItem(BlockLevelNode, SequenceNode):
         while text and isinstance(text[0], OutputDelimiter) and text[0].string.isspace():
             text.pop(0)
         # Remove leading indent from first text node.
-        if text and isinstance(text[0], (str, unicode)):
-            for i in xrange(len(prefix)):
+        if text and isinstance(text[0], str):
+            for i in range(len(prefix)):
                 if text[0] and text[0][0].isspace():
                     text[0] = text[0][1:]
         # Prefix the list item bullet and return the result.
@@ -989,7 +989,7 @@ class Image(InlineNode):
         return Image(src=html_node.get('src', ''),
                      alt=html_node.get('alt', ''))
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.src or self.alt)
 
     def __repr__(self):
@@ -1040,9 +1040,9 @@ class HyperLink(InlineNode, SequenceNode):
         contents = simplify_children(html_node)
         # Automatically turn links to the online Vim documentation into *tag* |references|.
         if target.startswith('http://vimdoc.sourceforge.net/htmldoc/'):
-            tag = urlparse.urlparse(target).fragment
+            tag = urllib.parse.urlparse(target).fragment
             if tag:
-                tag = urllib.unquote(tag)
+                tag = urllib.parse.unquote(tag)
                 return TagReference(tag, contents)
         return HyperLink(target=target, contents=contents)
 
@@ -1080,7 +1080,7 @@ class CodeFragment(InlineNode):
     def __repr__(self):
         return "CodeFragment(text=%r)" % self.text
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.text and not self.text.isspace()
 
     def render(self, **kw):
@@ -1140,7 +1140,7 @@ class Text(InlineNode):
     def __repr__(self):
         return "Text(text=%r)" % self.text
 
-    def __nonzero__(self):
+    def __bool__(self):
         if isinstance(self.parent, (BlockLevelSequence, ListItem)):
             # Block level whitespace is not significant.
             return self.text and not self.text.isspace()
@@ -1252,7 +1252,7 @@ def flatten(l):
     From http://stackoverflow.com/a/2158532/788200.
     """
     for el in l:
-        if isinstance(el, collections.Iterable) and not isinstance(el, basestring):
+        if isinstance(el, collections.Iterable) and not isinstance(el, str):
             for sub in flatten(el):
                 yield sub
         else:
