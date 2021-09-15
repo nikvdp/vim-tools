@@ -149,7 +149,7 @@ def get_input(filename, url, args, markdown_extensions):
         text = sys.stdin.read()
     else:
         source = args[0] if args else url
-        source = "file://"
+        source = "file://" + source if "://" not in source else source
         logger.info("Reading input from %s ..", source)
         handle = urllib.request.urlopen(source)
         text = handle.read()
