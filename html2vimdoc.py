@@ -176,7 +176,7 @@ def markdown_to_html(text, markdown_extensions):
     # The Python Markdown module only accepts Unicode and ASCII strings, but we
     # don't know what the encoding of the Markdown text is. BeautifulSoup comes
     # to the rescue with the aptly named UnicodeDammit class :-).
-    return markdown(UnicodeDammit(text).str, extensions=markdown_extensions)
+    return markdown(text, extensions=markdown_extensions)
 
 def html2vimdoc(html, title='', filename='', url='', content_selector='#content', selectors_to_ignore=[], modeline='vim: ft=help'):
     """
@@ -184,7 +184,7 @@ def html2vimdoc(html, title='', filename='', url='', content_selector='#content'
     """
     logger.info("Parsing HTML ..")
     html = remove_hexadecimal_character_references(html)
-    tree = BeautifulSoup(html, convertEntities=BeautifulSoup.ALL_ENTITIES)
+    tree = BeautifulSoup(html)
     logger.info("Transforming contents ..")
     title = select_title(tree, title)
     ignore_comments(tree)
@@ -195,7 +195,7 @@ def html2vimdoc(html, title='', filename='', url='', content_selector='#content'
     find_references(simple_tree, url)
     # Add an "Introduction" heading to separate the table of contents from the
     # start of the document text.
-    simple_tree.contents.insert(0, Heading(level=1, contents=[Text(text="Introduction")]))
+    simple_tree.insert(0, Heading(level=1, contents=[Text(text="Introduction")]))
     logger.info("Tagging document headings ..")
     tagged_headings = tag_headings(simple_tree, filename)
     logger.info("Marking internal references (pass 1, before TOC) ..")
